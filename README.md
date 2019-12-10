@@ -17,12 +17,12 @@ face-alignment==1.0.0
 &ensp;&ensp;&ensp;&ensp;一组图像序列对应一个词语，由于词语之间没有必然联系，所以可以看作一个纯分类问题。难点在于数据处理，样本不同，图片的数量和大小都不同，并且数据明显做了抽帧处理，试图根据图片数量来确定词语长度应该是没什么效果的。  
 ## 数据处理
 这里参考了FesianXu的代码（https://github.com/FesianXu/LipNet_ChineseWordsClassification），使用face-alignment库做嘴唇区域切割。  
-![avatar](README_IMGS\2d3d.png)  
+![avatar](https://github.com/liuzhejun/XWbank_LipReading/blob/master/README_IMGS/2d3d.png)  
 &ensp;&ensp;&ensp;&ensp;使用face-alignment做嘴唇切割比较耗时，很依赖于cup处理能力，我处理完所有样本大概在3小时左右，并且许多图片由于人脸不完整，无法正确识别，但由于帧与帧之间有相关性，可以通过上下帧的嘴部位置确定当前帧的嘴部位置。  
 &ensp;&ensp;&ensp;&ensp;另一种方法是人工标注一部分嘴部区域图片，再训练一个专门识别嘴部区域的模型，以识别出其余图片的嘴唇区域，个人更推荐这种方法，只是由于时间问题没有尝试。
 ## 模型
 &ensp;&ensp;&ensp;&ensp;在答辩的时候发现很多选手用的模型都比较类似，`3D卷积`+`ResNet`+[`RNN`|`TSM`]就能达到比较好的效果：
-![avatar](README_IMGS\model_1.png)  
+![avatar](https://github.com/liuzhejun/XWbank_LipReading/blob/master/README_IMGS/model_1.png)  
 在我的代码中相对于论文作者的模型参数，我做了如下修改：  
 * 图像输入大小从1x112x112改为3x120X180，也就是将灰度图改为了彩色图，并将图像大小调整为了更适合嘴唇大小的120x180（但1x112x112也能得到0.65的单折验证集成绩）.
 * 3D卷积核大小由5x7x7改为3x5x5，一方面是为了减少模型参数，另一方面是我们的每个样本帧数是比较少的，跨越5个time step的空间卷积有些大了。
@@ -79,7 +79,7 @@ python train.py --data_path data/train_data.dat
 &ensp;&ensp;&ensp;&ensp;如果直接跑1000分类，那么线下准确率只有0.35左右，必然不行。一种容易想到的思路就是将1000分类转化为3个10分类，其实这种方法是可行的，有队伍训练3个模型分别识别个、十、百位数三个数字，最终准确率达到了0.9+，的确让我比较惊讶，而我虽然也尝试过3个10分类，但我是将3个分类压缩在一个模型。也就是3个10分类的权重是共享的，也许是参数数量限制了我的准确率，这种做法最后准确率只有0.25.  
 &ensp;&ensp;&ensp;&ensp;最后我的思路是这样，尽管可以将问题分解为3个10分类问题，但最终还是要将3个分类概率相乘，其实仍旧是1000分类，只是相对于1000分类而言，5000个样本的训练集是能够满足10分类的要求的，本质上就是要让模型意识到不同样本之间并不是毫无联系的两类，而是所有的样本都是可以划分为个、十、百三个位置的10分类，且个、十、百三个位置之间也是相同的10分类问题。  
 &ensp;&ensp;&ensp;&ensp;所以我在模型仍是1000分类的基础上，在Resnet层之后添加了一个`Attention`分支，用来做3个10分类，最终的loss是1000分类和10分类的两个loss之和。目的就是为了让前面的3D卷积和ResNet层学习到单个数字的唇语特征，而非毫无相关的1000分类。  
-![avatar](README_IMGS\model_2.png)    
+![avatar](https://github.com/liuzhejun/XWbank_LipReading/blob/master/README_IMGS/model_2.png)    
 &ensp;&ensp;&ensp;&ensp;采用`注意力机制`是因为一个样本中的每帧图片分别对个、十、百位数字的分类贡献必然不同，分别将`ResNet`中的每个time stpe的隐藏层向量以不同权重相加，即代表每个数字对不同帧的图像的注意程度。  
 &ensp;&ensp;&ensp;&ensp;模型准确率应该还有提升的空间，因为相对于第一个分支的GRU层，`Attention`层的参数是非常少的，将`单头注意力`改为`多头注意力`应该会有提升。
 
