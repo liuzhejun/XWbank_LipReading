@@ -16,7 +16,7 @@ face-alignment==1.0.0
 # 一、初赛
 &ensp;&ensp;&ensp;&ensp;一组图像序列对应一个词语，由于词语之间没有必然联系，所以可以看作一个纯分类问题。难点在于数据处理，样本不同，图片的数量和大小都不同，并且数据明显做了抽帧处理，试图根据图片数量来确定词语长度应该是没什么效果的。  
 ## 数据处理
-这里参考了FesianXu的代码（https://github.com/FesianXu/LipNet_ChineseWordsClassification），使用face-alignment库做嘴唇区域切割。  
+使用face-alignment库做嘴唇区域切割，这里参考了FesianXu的代码<https://github.com/FesianXu/LipNet_ChineseWordsClassification>  
 ![avatar](https://github.com/liuzhejun/XWbank_LipReading/blob/master/README_IMGS/2d3d.png)  
 &ensp;&ensp;&ensp;&ensp;使用face-alignment做嘴唇切割比较耗时，很依赖于cup处理能力，我处理完所有样本大概在3小时左右，并且许多图片由于人脸不完整，无法正确识别，但由于帧与帧之间有相关性，可以通过上下帧的嘴部位置确定当前帧的嘴部位置。  
 &ensp;&ensp;&ensp;&ensp;另一种方法是人工标注一部分嘴部区域图片，再训练一个专门识别嘴部区域的模型，以识别出其余图片的嘴唇区域，个人更推荐这种方法，只是由于时间问题没有尝试。
