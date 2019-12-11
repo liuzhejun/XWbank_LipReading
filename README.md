@@ -39,25 +39,25 @@ face-alignment==1.0.0
 ### 1.获取landmarks
 使用face-alignment库提取训练集的面部坐标数据
 ```shell
-python get_landmarks --root_dir 新网银行唇语识别竞赛数据/1.训练集/lip_train/
-                     --save_path data/train_landmarks.dat
+python get_landmarks.py --root_dir 新网银行唇语识别竞赛数据/1.训练集/lip_train/
+                        --save_path data/train_landmarks.dat
 ```
 提取测试集的面部坐标数据
 ```shell
-python get_landmarks --root_dir 新网银行唇语识别竞赛数据/2.测试集/lip_test/
-                     --save_path data/test_landmarks.dat
+python get_landmarks.py --root_dir 新网银行唇语识别竞赛数据/2.测试集/lip_test/
+                        --save_path data/test_landmarks.dat
 ```
 程序会读取`root_dir`下的每个文件夹中的每张图片，提取面部特征点数据，保存为`save_path`  
 
 ### 2.数据处理
 ```shell
-python data_process_with_face-alignment --train_path 新网银行唇语识别竞赛数据/1.训练集/lip_train/
-                                        --test_path 新网银行唇语识别竞赛数据/2.测试集/lip_test/
-                                        --label_path 新网银行唇语识别竞赛数据/1.训练集/lip_train.txt
-                                        --train_landmarks_path data/train_landmarks.dat
-                                        --test_landmarks_path data/test_landmarks.dat
-                                        --save_path data/
-                                        --k 5
+python data_process_with_face-alignment.py --train_path 新网银行唇语识别竞赛数据/1.训练集/lip_train/
+                                           --test_path 新网银行唇语识别竞赛数据/2.测试集/lip_test/
+                                           --label_path 新网银行唇语识别竞赛数据/1.训练集/lip_train.txt
+                                           --train_landmarks_path data/train_landmarks.dat
+                                           --test_landmarks_path data/test_landmarks.dat
+                                           --save_path data/
+                                           --k 5
 ```
 程序读取训练集和测试集图片，根据上一步保存的`train_landmarks.dat`和`test_landmarks.dat`面部特征点数据进行嘴部区域切割，并进行归一化、按帧数排序、处理词表、产生标签，最后保存k个`.dat`文件和一个`测试集数据`文件以及`vocab.txt`到`save_path`目录下。  
 
@@ -81,7 +81,7 @@ python train.py --data_path data/train_data.dat
 &ensp;&ensp;&ensp;&ensp;所以我在模型仍是1000分类的基础上，在Resnet层之后添加了一个`Attention`分支，用来做3个10分类，最终的loss是1000分类和10分类的两个loss之和。目的就是为了让前面的3D卷积和ResNet层学习到单个数字的唇语特征，而非毫无相关的1000分类。  
 ![avatar](https://github.com/liuzhejun/XWbank_LipReading/blob/master/README_IMGS/model_2.png)    
 &ensp;&ensp;&ensp;&ensp;采用`注意力机制`是因为一个样本中的每帧图片分别对个、十、百位数字的分类贡献必然不同，分别将`ResNet`中的每个time stpe的隐藏层向量以不同权重相加，即代表每个数字对不同帧的图像的注意程度。  
-&ensp;&ensp;&ensp;&ensp;模型准确率应该还有提升的空间，因为相对于第一个分支的GRU层，`Attention`层的参数是非常少的，将`单头注意力`改为`多头注意力`应该会有提升。
+&ensp;&ensp;&ensp;&ensp;`Attention`分支中用的只是`单头注意力`，后面我尝试过`多头注意力`，发现准确率反而有所下降，仔细思考了一下也正常：在我的模型中注意力分支主要是为了让前面的3D卷积层和ResNet层学习到单个数字特征，而`Attention`分支最后的输出并未给最终分类提供帮助，为了让10分类层的信息尽可能多的反馈到`ReasNet`和`3D卷积`层，当然参数不宜过多。
 
 ## 代码
 &ensp;&ensp;&ensp;&ensp;代码的使用方式和初赛代码没有任何区别，因为仅仅改变了模型的loss计算方式，对模型外部而言，唯一的改变就是训练集`label`有微小改变，初赛中训练集的`label`是由样本的id（形如‘`00b60f1b01138fbf902bd4bee2d7ebc1`’）得到词语（形如‘`快乐`’），再由词语得到类别下标。而决赛中由样本id得到的词语(形如‘`123`’)本就是一个数字，可以代表类别下标
